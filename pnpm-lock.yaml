@@ -2,6 +2,7 @@ lockfileVersion: '9.0'
 
 settings:
   autoInstallPeers: true
+<<<<<<< HEAD
   excludeLinksFromLockfile: false
 
 importers:
@@ -3221,3 +3222,6 @@ snapshots:
   yallist@5.0.0: {}
 
   zod@3.25.67: {}
+=======
+  excludeLinksFromLockfile: false
+>>>>>>> a27ee59a141a89a10c15441552fef35c680f6313
