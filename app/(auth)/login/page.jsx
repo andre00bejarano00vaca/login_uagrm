@@ -4,16 +4,19 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { makeClient } from "@/lib/graphqlClient";
 import { gql } from "graphql-request";
-import { makeClient } from "@/lib/graphqlClient"; // usa el que ya creaste
+import { Eye, EyeOff, Lock, User } from "lucide-react";
 
-// Mutation de login (como la probaste en Postman)
-const LOGIN = gql`
+const LOGIN_MUTATION = gql`
   mutation Login($registro: String!, $password: String!) {
     login(registro: $registro, password: $password) {
       token
-      user { id username email }
+      user {
+        id
+        username
+        email
+      }
     }
   }
 `;
@@ -33,30 +36,22 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // el login NO lleva token
       const client = makeClient();
-      const { login } = await client.request(LOGIN, {
+      const res = await client.request(LOGIN_MUTATION, {
         registro: form.user.trim(),
         password: form.pass.trim(),
       });
 
-      const token = login?.token;
-      if (!token) throw new Error("Credenciales incorrectas");
+      const { token } = res.login;
 
-      // guarda sesión para siguientes requests protegidos
-      localStorage.setItem("authToken", token);
+      // ✅ Guardar token y registro
+      localStorage.setItem("token", token);
       localStorage.setItem("registro", form.user.trim());
-      // si te sirve el usuario:
-      localStorage.setItem("usuario", JSON.stringify(login.user || null));
 
-      // redirige a tu ruta actual
       router.push("/dashboard");
-    } catch (e2) {
-      const msg =
-        e2?.response?.errors?.[0]?.message ||
-        e2?.message ||
-        "No se pudo iniciar sesión";
-      setErr(msg);
+    } catch (error) {
+      console.error(error);
+      setErr("Credenciales incorrectas");
     } finally {
       setLoading(false);
     }
