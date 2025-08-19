@@ -48,7 +48,7 @@ export default function Login() {
       localStorage.setItem("token", token);
       localStorage.setItem("registro", form.user.trim());
 
-      router.push("/dashboard");
+      router.push("/profile");
     } catch (error) {
       console.error(error);
       setErr("Credenciales incorrectas");
