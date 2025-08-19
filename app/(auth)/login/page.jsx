@@ -4,8 +4,19 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { gql } from "graphql-request";
+import { makeClient } from "@/lib/graphqlClient"; // usa el que ya creaste
+
+// Mutation de login (como la probaste en Postman)
+const LOGIN = gql`
+  mutation Login($registro: String!, $password: String!) {
+    login(registro: $registro, password: $password) {
+      token
+      user { id username email }
+    }
+  }
+`;
 
 export default function Login() {
   const [form, setForm] = useState({ user: "", pass: "" });
@@ -21,21 +32,34 @@ export default function Login() {
     setErr(null);
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("estudiante")
-      .select("*")
-      .eq("registro", form.user.trim())
-      .eq("contrasena", form.pass.trim())
-      .single();
+    try {
+      // el login NO lleva token
+      const client = makeClient();
+      const { login } = await client.request(LOGIN, {
+        registro: form.user.trim(),
+        password: form.pass.trim(),
+      });
 
-    setLoading(false);
+      const token = login?.token;
+      if (!token) throw new Error("Credenciales incorrectas");
 
-    if (error || !data) {
-      setErr("Credenciales incorrectas");
-      return;
+      // guarda sesión para siguientes requests protegidos
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("registro", form.user.trim());
+      // si te sirve el usuario:
+      localStorage.setItem("usuario", JSON.stringify(login.user || null));
+
+      // redirige a tu ruta actual
+      router.push("/dashboard");
+    } catch (e2) {
+      const msg =
+        e2?.response?.errors?.[0]?.message ||
+        e2?.message ||
+        "No se pudo iniciar sesión";
+      setErr(msg);
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/dashboard");
   };
 
   return (
@@ -102,15 +126,9 @@ export default function Login() {
               </p>
             </div>
 
-            <form
-              onSubmit={onSubmit}
-              className="px-5 pt-5 pb-6 space-y-4 sm:space-y-5"
-            >
+            <form onSubmit={onSubmit} className="px-5 pt-5 pb-6 space-y-4 sm:space-y-5">
               <div className="space-y-2">
-                <label
-                  htmlFor="user"
-                  className="block text-xs sm:text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="user" className="block text-xs sm:text-sm font-medium text-gray-700">
                   Registro
                 </label>
                 <div className="relative">
@@ -120,7 +138,7 @@ export default function Login() {
                     name="user"
                     type="text"
                     autoComplete="username"
-                    placeholder="Ej. 223344556"
+                    placeholder="Ej. 218110001"
                     value={form.user}
                     onChange={onChange}
                     className="w-full h-11 sm:h-12 rounded-lg border border-gray-300 bg-white pl-9 sm:pl-10 pr-3 text-[14px] sm:text-[15px] outline-none ring-blue-900/20 transition focus:border-blue-900 focus:ring-4"
@@ -130,10 +148,7 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="pass"
-                  className="block text-xs sm:text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="pass" className="block text-xs sm:text-sm font-medium text-gray-700">
                   Contraseña
                 </label>
                 <div className="relative">
@@ -181,32 +196,21 @@ export default function Login() {
 
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-[11px] sm:text-xs text-gray-400">
-                  Acceso directo a:
-                </span>
+                <span className="text-[11px] sm:text-xs text-gray-400">Acceso directo a:</span>
                 <div className="h-px flex-1 bg-gray-200" />
               </div>
 
               <div className="flex flex-col space-y-2 text-center">
-                <Link
-                  href="https://inscripcion.uagrm.edu.bo/"
-                  target="_blank"
-                  className="text-blue-600 hover:underline text-sm"
-                >
+                <Link href="https://inscripcion.uagrm.edu.bo/" target="_blank" className="text-blue-600 hover:underline text-sm">
                   Inscripción Web
                 </Link>
-                <Link
-                  href="https://www.uagrm.edu.bo/udigital/titulos"
-                  target="_blank"
-                  className="text-blue-600 hover:underline text-sm"
-                >
+                <Link href="https://www.uagrm.edu.bo/udigital/titulos" target="_blank" className="text-blue-600 hover:underline text-sm">
                   Formulario de seguimiento a Titulados
                 </Link>
               </div>
 
               <p className="text-center text-[11px] sm:text-xs text-gray-500 mt-2">
-                © {new Date().getFullYear()} UAGRM · Todos los derechos
-                reservados
+                © {new Date().getFullYear()} UAGRM · Todos los derechos reservados
               </p>
             </form>
           </div>
