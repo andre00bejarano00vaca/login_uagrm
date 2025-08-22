@@ -1,18 +1,14 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
-  const cookieStore = cookies();
-  const authToken = cookieStore.get("auth")?.value;
-
   const { registro, password } = await req.json();
+  console.log(registro)
+  console.log(password)
 
-  // Hacer POST a tu backend GraphQL
-  const res = await fetch("https://api-graphql-dijango-smiz.onrender.com/graphql/", {
+  const res = await fetch("https://api-graphql-django-smiz.onrender.com/graphql/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken ?? ""}`,
     },
     body: JSON.stringify({
       query: `
@@ -29,7 +25,6 @@ export async function POST(req) {
 
   const data = await res.json();
 
-  // Guardar token en cookie segura si login es correcto
   if (data?.data?.login?.token) {
     const response = NextResponse.json({ ok: true });
     response.cookies.set({
@@ -43,6 +38,12 @@ export async function POST(req) {
     });
     return response;
   }
+let errorMessage = "Login failed";
+if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+  errorMessage = data.errors[0].message; // tomar el primer mensaje
+  console.log(data)
+}
 
-  return NextResponse.json({ error: "Login failed" }, { status: 401 });
+return NextResponse.json({ error: errorMessage }, { status: 401 });
+
 }
