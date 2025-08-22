@@ -1,52 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { makeClient } from "@/lib/graphqlClient";
-import { gql } from "graphql-request";
-
-const QUERY_ESTUDIANTE = gql`
-  query estudiantePorRegistro($registro: String!) {
-    estudiantePorRegistro(registro: $registro) {
-      registro
-      apellidosNombres
-      ci
-      email
-      sexo
-      estadoCivil
-      fechaNacimiento
-      pais
-      departamento
-      provincia
-      nacionalidad
-      direccion
-      telefono
-    }
-  }
-`;
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const registro = localStorage.getItem("registro");
-
-    if (!token || !registro) {
-      setError("No hay sesión activa");
-      return;
-    }
-
-    const client = makeClient(token);
-
-    client
-      .request(QUERY_ESTUDIANTE, { registro })
-      .then((res) => setData(res.estudiantePorRegistro))
+    fetch("/api/profile")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData.error) {
+          setError(resData.error);
+        } else {
+          setData(resData);
+        }
+      })
       .catch(() => setError("Error al cargar datos"));
   }, []);
 
-  if (error) return <p>{error}</p>;
-  if (!data) return <p>Cargando...</p>;
+  if (error) return <p style={{ padding: "20px", color: "red" }}>{error}</p>;
+  if (!data) return <p style={{ padding: "20px" }}>Cargando...</p>;
 
   return (
     <div style={{ padding: "20px" }}>
