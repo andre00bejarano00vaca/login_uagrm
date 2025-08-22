@@ -30,28 +30,33 @@ export default function Login() {
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const onSubmit = async (e) => {
+ const onSubmit = async (e) => {
     e.preventDefault();
-    setErr(null);
     setLoading(true);
+    setErr(null);
 
     try {
-      const client = makeClient();
-      const res = await client.request(LOGIN_MUTATION, {
-        registro: form.user.trim(),
-        password: form.pass.trim(),
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registro: form.user.trim(),
+          password: form.pass.trim(),
+        }),
       });
 
-      const { token } = res.login;
+      const data = await res.json();
 
-      // ✅ Guardar token y registro
-      localStorage.setItem("token", token);
-      localStorage.setItem("registro", form.user.trim());
+      if (!res.ok) {
+        setErr(data.error || "Credenciales incorrectas");
+        return;
+      }
 
+      // ✅ Login exitoso, la cookie ya está guardada por el API Route
       router.push("/profile");
     } catch (error) {
       console.error(error);
-      setErr("Credenciales incorrectas");
+      setErr("Error de conexión con el servidor");
     } finally {
       setLoading(false);
     }
